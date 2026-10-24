@@ -768,6 +768,25 @@ namespace PadForge.Common.Input
                     else if (slot.AxisRoles[a] == VrAxisRole.Trigger) slot.TriggerAxis = a;
                     else if (slot.AxisRoles[a] == VrAxisRole.Grip) slot.GripAxis = a;
                 }
+
+                // PATCHED (local): the PICO SteamVR driver delivers the raw
+                // trigger and grip values on rAxis1 / rAxis2 but leaves
+                // Prop_Axis1Type..Prop_Axis4Type unset, so the declared
+                // classification above concludes "this controller has no
+                // trigger and no grip" (trig=-1 grip=-1) while the values are
+                // in fact there: rAxis1 up to 1.00, rAxis2 up to 1.00,
+                // joystick on rAxis0. Verified by A/B against the pristine
+                // engine on 2026-10-24 (pristine logs trig=-1 grip=-1, the
+                // same device then reports trig=1 grip=2 with this fallback
+                // and both analog triggers reach XInput). Fall back to the
+                // layout the driver's own legacy binding file uses when the
+                // declarations are missing.
+                if (slot.TriggerAxis < 0 || slot.GripAxis < 0)
+                {
+                    if (slot.JoyAxis < 0) slot.JoyAxis = 0;
+                    if (slot.TriggerAxis < 0) slot.TriggerAxis = 1;
+                    if (slot.GripAxis < 0) slot.GripAxis = 2;
+                }
             }
 
             if (!AttachVirtual(slot, pid))
